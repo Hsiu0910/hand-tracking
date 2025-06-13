@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# 隨機生成櫻花樹程式
+# 隨機生成櫻花樹程式 - 優化版
 
 import turtle
 import random
@@ -19,57 +19,22 @@ def setup_turtle():
     t = turtle.Turtle()
     t.speed(0)  # 最快速度
     t.hideturtle()
-    t.left(90)  # 向上
-    t.penup()
-    t.backward(150)  # 起始位置在畫面底部
-    t.pendown()
     return t
 
-# 繪製樹幹
-def draw_trunk(t, branch_len):
-    if branch_len > 10:
-        # 樹幹顏色
-        t.pencolor("brown")
-        t.pensize(branch_len / 10)
-        
-        # 繪製主幹
-        t.forward(branch_len)
-        
-        # 右側分支
-        angle_right = random.randint(15, 30)
-        length_factor_right = random.uniform(0.65, 0.85)
-        t.right(angle_right)
-        draw_trunk(t, branch_len * length_factor_right)
-        
-        # 左側分支
-        angle_left = random.randint(15, 30)
-        length_factor_left = random.uniform(0.65, 0.85)
-        t.left(angle_left + angle_right)  # 調整角度
-        draw_trunk(t, branch_len * length_factor_left)
-        
-        # 回到原位置
-        t.right(angle_left)
-        t.backward(branch_len)
-    else:
-        # 在樹枝末端畫櫻花
-        draw_cherry_blossom(t)
-
 # 繪製櫻花
-def draw_cherry_blossom(t):
-    # 儲存當前位置和方向
-    pos = t.position()
-    heading = t.heading()
+def draw_cherry_blossom(t, size):
+    current_pos = t.position()
+    current_heading = t.heading()
     
-    # 隨機選擇櫻花的大小和顏色
-    size = random.uniform(3, 8)
+    # 隨機選擇櫻花顏色
     colors = ["#ffb7c5", "#ffc0cb", "#ff80a0", "#ffaeb9"]
-    color = random.choice(colors)  # 隨機選擇粉色系顏色
+    color = random.choice(colors)
     
     t.pencolor(color)
     t.fillcolor(color)
     t.begin_fill()
     
-    # 繪製花瓣
+    # 繪製5瓣花
     for _ in range(5):
         t.forward(size)
         t.right(72)
@@ -80,72 +45,130 @@ def draw_cherry_blossom(t):
     
     # 花心
     t.penup()
-    t.goto(pos)
+    t.goto(current_pos)
     t.pendown()
-    t.pencolor("#ffec8b")  # 淡黃色
+    t.pencolor("#ffec8b")
     t.fillcolor("#ffec8b")
     t.begin_fill()
-    t.circle(size / 4)
+    t.circle(size/4)
     t.end_fill()
     
-    # 恢復位置和方向
+    # 恢復位置
     t.penup()
-    t.goto(pos)
-    t.setheading(heading)
+    t.goto(current_pos)
+    t.setheading(current_heading)
     t.pendown()
 
-# 添加落櫻
-def add_falling_petals(window, count=30):
-    petals = []
-    colors = ["#ffb7c5", "#ffc0cb", "#ff80a0", "#ffaeb9"]
+# 遞歸繪製樹枝 (優化版)
+def draw_branch(t, length, angle, depth, min_length=5):
+    if length < min_length or depth > 10:  # 增加深度限制
+        return
     
-    for _ in range(count):
-        petal = turtle.Turtle()
-        petal.speed(0)
-        petal.hideturtle()
-        petal.penup()
-        
-        # 隨機位置
-        x = random.randint(-380, 380)
-        y = random.randint(-100, 280)
-        petal.goto(x, y)
-        
-        # 隨機選擇顏色
-        color = random.choice(colors)
-        
-        # 繪製小花瓣
-        petal.pencolor(color)
-        petal.fillcolor(color)
-        petal.begin_fill()
-        petal.circle(random.uniform(1, 3))
-        petal.end_fill()
-        
-        petals.append(petal)
+    # 樹幹顏色和粗細
+    t.pencolor("brown")
+    t.pensize(length/10)
     
-    return petals
+    # 主幹
+    t.forward(length)
+    current_pos = t.position()
+    current_heading = t.heading()
+    
+    # 如果達到末端，繪製花朵
+    if length < 20:
+        draw_cherry_blossom(t, random.uniform(3, 6))
+    
+    # 右側分支
+    right_angle = random.randint(15, 30)
+    right_length = length * random.uniform(0.6, 0.8)
+    
+    t.right(right_angle)
+    draw_branch(t, right_length, right_angle, depth+1, min_length)
+    
+    # 恢復位置
+    t.penup()
+    t.goto(current_pos)
+    t.setheading(current_heading)
+    t.pendown()
+    
+    # 左側分支
+    left_angle = random.randint(15, 30)
+    left_length = length * random.uniform(0.6, 0.8)
+    
+    t.left(left_angle)
+    draw_branch(t, left_length, left_angle, depth+1, min_length)
+    
+    # 恢復位置
+    t.penup()
+    t.goto(current_pos)
+    t.setheading(current_heading)
+    t.pendown()
 
-# 添加背景元素
-def add_background(t):
-    # 儲存當前位置和方向
-    pos = t.position()
-    heading = t.heading()
+# 繪製櫻花樹
+def draw_cherry_tree(t):
+    # 從底部開始
+    t.penup()
+    t.goto(0, -200)
+    t.setheading(90)  # 向上
+    t.pendown()
     
-    # 添加地面
+    # 樹幹
+    t.pencolor("brown")
+    t.pensize(10)
+    t.forward(80)
+    
+    # 開始分支
+    initial_length = random.randint(60, 80)
+    draw_branch(t, initial_length, 0, 0)
+
+# 添加地面
+def draw_ground(t):
     t.penup()
     t.goto(-400, -200)
-    t.setheading(0)
     t.pendown()
-    t.pencolor("#228b22")  # 綠色
+    t.pencolor("#228b22")
     t.fillcolor("#228b22")
     t.begin_fill()
+    t.setheading(0)
     for _ in range(2):
         t.forward(800)
         t.right(90)
         t.forward(50)
         t.right(90)
     t.end_fill()
+
+# 添加落櫻效果
+def add_falling_petals(count=30):
+    petals = []
+    colors = ["#ffb7c5", "#ffc0cb", "#ff80a0", "#ffaeb9"]
     
-    # 添加太陽
+    for _ in range(count):
+        # 創建新的烏龜
+        p = turtle.Turtle()
+        p.speed(0)
+        p.hideturtle()
+        p.penup()
+        
+        # 隨機位置
+        x = random.randint(-380, 380)
+        y = random.randint(-100, 280)
+        p.goto(x, y)
+        
+        # 繪製花瓣
+        p.pendown()
+        color = random.choice(colors)
+        p.pencolor(color)
+        p.fillcolor(color)
+        p.begin_fill()
+        p.circle(random.uniform(2, 4))
+        p.end_fill()
+        p.penup()
+        
+        petals.append(p)
+    
+    return petals
+
+# 添加太陽
+def draw_sun(t):
     t.penup()
     t.goto(300, 200)
     t.pendown()
@@ -154,44 +177,45 @@ def add_background(t):
     t.begin_fill()
     t.circle(30)
     t.end_fill()
-    
-    # 恢復位置和方向
-    t.penup()
-    t.goto(pos)
-    t.setheading(heading)
-    t.pendown()
 
 # 添加簽名
 def add_signature(t):
     t.penup()
     t.goto(-380, -280)
-    t.pencolor("black")
     t.pendown()
+    t.pencolor("black")
     t.write("隨機櫻花樹生成器 - 點擊視窗關閉", font=("Arial", 12, "normal"))
 
 # 主函數
 def main():
-    # 設置視窗和烏龜
-    window = setup_window()
-    t = setup_turtle()
-    
-    # 添加背景
-    add_background(t)
-    
-    # 隨機決定樹的主幹長度
-    trunk_length = random.randint(100, 140)
-    
-    # 繪製樹
-    draw_trunk(t, trunk_length)
-    
-    # 添加落櫻
-    petals = add_falling_petals(window, 40)
-    
-    # 添加簽名
-    add_signature(t)
-    
-    # 顯示結果並等待用戶點擊關閉
-    window.exitonclick()
+    try:
+        # 初始化
+        window = setup_window()
+        t = setup_turtle()
+        
+        # 繪製場景
+        draw_ground(t)
+        draw_sun(t)
+        
+        # 繪製櫻花樹
+        draw_cherry_tree(t)
+        
+        # 添加落櫻
+        petals = add_falling_petals(30)
+        
+        # 添加簽名
+        add_signature(t)
+        
+        # 完成繪製，隱藏烏龜
+        t.hideturtle()
+        
+        # 等待點擊
+        turtle.exitonclick()
+        
+    except Exception as e:
+        print(f"發生錯誤: {e}")
+        # 確保視窗顯示
+        turtle.mainloop()
 
 if __name__ == "__main__":
     main()
